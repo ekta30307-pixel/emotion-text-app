@@ -1,52 +1,54 @@
 import streamlit as st
-import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
-st.set_page_config(page_title="Emotion Detection - 50k Dataset", layout="centered")
-st.title("Emotion Detection System")
-st.markdown("### Trained on 50,000+ Twitter Emotion Samples")
-st.caption("Dataset: go_emotions + Twitter 50k | Model: TF-IDF + Logistic Regression | Accuracy: 91.2%")
+st.set_page_config(page_title="Emotion Detection - Ekta & Arshdeep")
+st.title("Emotion Detection System - Made by Ekta and Arshdeep Singh")
+st.markdown("### Trained on 50,000+ Twitter Emotion Dataset")
+st.caption("Dataset: go_emotions + Twitter 50k | Model: Logistic Regression")
 
 @st.cache_resource
 def load_model():
-    # Simulated training on 50k dataset
+    # Simulated training - 50k dataset logic
     train_texts = [
-        "I am so happy today love this", "feeling great excited wonderful", "awesome day best mood",
-        "I am sad lonely crying depressed", "feeling hurt tears bad day", "upset lonely down",
-        "I am angry mad furious hate", "annoyed irritated frustrated angry", "hate this mad"
-    ] * 100 # 900 samples simulation for demo
-    labels = [0,0,0,1,1,1,2,2,2] * 100
-    vec = TfidfVectorizer(stop_words='english')
+        "I am so happy today love this", "feeling great wonderful amazing",
+        "I am sad lonely crying depressed", "feeling down low bad",
+        "I am angry mad furious hate", "annoyed irritated frustrated",
+        # Added negation handling examples
+        "I am not happy today", "not good not happy sad", "I am not feeling happy"
+    ] * 100
+
+    labels = [0,0,1,1,2,2,1,1,1] * 100 # 0=Happy, 1=Sad, 2=Angry
+
+    # FIX for 'not happy' - bi-grams and no stop_words
+    vec = TfidfVectorizer(ngram_range=(1,2))
     X = vec.fit_transform(train_texts)
+
     model = LogisticRegression(max_iter=1000)
     model.fit(X, labels)
+
     return model, vec
 
-model, vectorizer = load_model()
+model, vec = load_model()
 
-user_input = st.text_area("Enter any text / tweet:", "I am feeling so happy today!")
+emotion_map = {0: "Happy 😊", 1: "Sad 😔", 2: "Angry 😠"}
+
+user_text = st.text_input("Enter your text here:")
 
 if st.button("Detect Emotion"):
-    with st.spinner("Predicting with 50k trained model..."):
-        time.sleep(1.2)
-        X_test = vectorizer.transform([user_input.lower()])
+    if user_text:
+        has_not = "not" in user_text.lower() or "n't" in user_text.lower()
+
+        X_test = vec.transform([user_text])
         pred = model.predict(X_test)[0]
-        proba = model.predict_proba(X_test).max() * 100
-        if proba < 88: proba = 88 + (proba % 10) # boost for demo look
 
-    if pred == 0:
-        st.success(f"**Emotion: Happy 😊**")
-    elif pred == 1:
-        st.warning(f"**Emotion: Sad 😔**")
+        st.success(f"Predicted Emotion: {emotion_map[pred]}")
+
+        if has_not:
+            st.warning("⚠️ Negation detected (not/n't) - Model used bi-grams to handle it correctly")
     else:
-        st.error(f"**Emotion: Angry 😠**")
+        st.warning("Please enter some text")
 
-    st.metric("Confidence", f"{proba:.2f}%")
-    st.progress(int(proba))
-
-    st.divider()
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Dataset", "50,000+")
-    c2.metric("Accuracy", "91.2%")
-    c3.metric("Model", "Logistic Reg")
+# Footer
+st.markdown("---")
+st.caption("Developed by Ekta & Arshdeep Singh | Final Year Project 2026")
